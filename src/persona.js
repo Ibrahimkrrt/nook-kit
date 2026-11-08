@@ -2,7 +2,11 @@
 // It lives in the app repo as web/src/persona.json, so the Nook can read it too
 // (to draw the app's card) without importing any of the app's code.
 
-/** CSS variables for a persona's colours (layer 3 of the tokens). */
+/**
+ * CSS variables for a persona's colours (layer 3 of the tokens).
+ * When you put these on an element (not <html>), also give it className="nk-persona"
+ * so the derived tokens (--accent-soft, --glow, surfaces…) follow.
+ */
 export function personaVars(persona) {
   const c = persona?.colors || {};
   const vars = {};

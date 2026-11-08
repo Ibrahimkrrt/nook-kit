@@ -1,0 +1,6 @@
+/* __NAME__: layout only. Colours, type, surfaces and motion come from @nook/kit. */
+.app-hero { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--s-6); }
+
+@media (max-width: 600px) {
+  .app-hero { grid-template-columns: 1fr; justify-items: center; }
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Link the kit's shared Claude Code skills into ~/.claude/skills, so every Nook repo
+# (and any Claude Code session) builds with the same rules. Safe to run again.
+set -euo pipefail
+KIT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+mkdir -p "$HOME/.claude/skills"
+for dir in "$KIT"/skills/*/; do
+  name="$(basename "$dir")"
+  target="$HOME/.claude/skills/$name"
+  if [[ -e "$target" && ! -L "$target" ]]; then
+    echo "skip $name: $target exists and isn't a link" >&2
+    continue
+  fi
+  ln -sfn "${dir%/}" "$target"
+  echo "✔ $name → $target"
+done

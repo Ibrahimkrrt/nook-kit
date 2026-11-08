@@ -12,12 +12,26 @@
     "./vite": "./vite/preset.js",
     "./package.json": "./package.json"
   },
-  "files": ["src", "vite", "py", "skills", "templates", "bin", "docs"],
-  "sideEffects": ["*.css"],
-  "bin": { "nook-new-app": "bin/nook-new-app", "nook-persona": "bin/nook-persona.mjs" },
+  "files": [
+    "src",
+    "vite",
+    "py",
+    "skills",
+    "templates",
+    "bin",
+    "docs"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "bin": {
+    "nook-new-app": "bin/nook-new-app",
+    "nook-persona": "bin/nook-persona.mjs",
+    "nook-install-skills": "bin/nook-install-skills"
+  },
   "scripts": {
     "test": "cd py && python3 -m unittest discover -s tests",
-    "check": "node bin/check-kit.mjs"
+    "check": "d=$(mktemp -d) && NOOK_ROOT=$d NOOK_NO_INSTALL=1 bin/nook-new-app demo Demo >/dev/null && rm -rf $d && echo '\u2714 template scaffolds a valid app'"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.5",

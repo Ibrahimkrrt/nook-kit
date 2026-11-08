@@ -1,0 +1,21 @@
+{
+  "name": "__ID__-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "nook-persona check src/persona.json"
+  },
+  "dependencies": {
+    "@nook/kit": "git+file://__KIT__#semver:^__KIT_VERSION__",
+    "motion": "^14.10.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.0",
+    "vite": "^6.3.5"
+  }
+}

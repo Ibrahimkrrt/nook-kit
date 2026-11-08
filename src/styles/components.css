@@ -158,7 +158,7 @@
 /* ---------- speech bubble ---------- */
 .nk-speech {
   position: relative; padding: 14px 16px; border-radius: 16px; min-height: 52px;
-  background: var(--fill-2); border: 1px solid var(--line-2); box-shadow: var(--hl);
+  background: var(--bubble); border: 1px solid var(--line-2); box-shadow: var(--hl), var(--shadow-1);
   font-size: var(--t-md); line-height: 1.5;
 }
 .nk-speech small { display: block; margin-top: 4px; color: var(--text-3); font-size: var(--t-xs); }

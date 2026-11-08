@@ -1,0 +1,47 @@
+{
+  "id": "__ID__",
+  "app": "__NAME__",
+  "tagline": "__TAGLINE__",
+  "colors": {
+    "accent": "__ACCENT__",
+    "accent2": "__ACCENT2__",
+    "accentInk": "__INK__",
+    "glowA": "__ACCENT__",
+    "glowB": "__ACCENT2__",
+    "bg": "__BG__"
+  },
+  "mascot": {
+    "name": "__MASCOT__",
+    "aura": "__ACCENT__",
+    "eye": [5, 6],
+    "mouth": [7, 9],
+    "palette": {
+      "o": "#1b1530",
+      "b": "__ACCENT__",
+      "B": "__LIGHT__",
+      "d": "__DEEP__",
+      "c": "#ff9db0",
+      "e": "#1b1530"
+    },
+    "rows": [
+      "................",
+      ".....oooooo.....",
+      "...ooBBBbbboo...",
+      "..oBBbbbbbbbbo..",
+      "..oBbbbbbbbbbo..",
+      ".oBbbbbbbbbbbbo.",
+      ".obbbbbbbbbbbbo.",
+      ".obbbbbbbbbbbbo.",
+      ".obccbbbbbbccbo.",
+      ".obbbbbbbbbbbbo.",
+      ".obbbbbbbbbbbdo.",
+      "..odbbbbbbbbdo..",
+      "...oodddddddo...",
+      ".....oooooo....."
+    ]
+  },
+  "voice": {
+    "hello": ["Hi! I'm __MASCOT__. Give me a personality in persona.json."],
+    "poke": ["Hey!", "That tickles."]
+  }
+}

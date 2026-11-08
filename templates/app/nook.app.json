@@ -1,0 +1,9 @@
+{
+  "id": "__ID__",
+  "name": "__NAME__",
+  "version": "0.1.0",
+  "engine": "^__KIT_MAJOR__.0.0",
+  "api": "api/routes.py",
+  "web": "web/dist",
+  "persona": "web/src/persona.json"
+}

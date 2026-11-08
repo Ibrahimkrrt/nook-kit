@@ -1,2 +1,75 @@
 #!/usr/bin/env bash
-echo "coming soon"
+# Scaffold a new Nook app as its own git repo, wired to the kit, and install it in the Nook.
+#   nook-new-app <id> "<Name>" ["tagline"] ["Mascot name"]
+#   e.g. nook-new-app habits "Sprout" "Tiny habits, daily" "Bud"
+# Env: NOOK_ROOT (default ~/dev/pixel), NOOK_NO_INSTALL=1 to skip npm install/build/registration.
+set -euo pipefail
+
+id="${1:-}"; name="${2:-}"; tagline="${3:-A little Nook app}"; mascot="${4:-Bit}"
+if [[ ! "$id" =~ ^[a-z][a-z0-9-]{1,23}$ || -z "$name" ]]; then
+  echo "usage: nook-new-app <id> \"<Name>\" [\"tagline\"] [\"Mascot name\"]   (id: lowercase, 2-24 chars)" >&2
+  exit 2
+fi
+case "$id" in nook|api|assets|icons|fonts) echo "\"$id\" is reserved" >&2; exit 2;; esac
+
+KIT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+ROOT="${NOOK_ROOT:-$HOME/dev/pixel}"
+DEST="$ROOT/$id"
+[[ -e "$DEST" ]] && { echo "$DEST already exists" >&2; exit 1; }
+KIT_VERSION="$(python3 -c "import json;print(json.load(open('$KIT/package.json'))['version'])")"
+
+# a colour scheme picked from the id, so every new app looks different from day one
+read -r ACCENT ACCENT2 INK BG LIGHT DEEP < <(python3 - "$id" <<'PY'
+import sys, zlib
+schemes = [  # accent, accent2, ink, bg, light, deep
+    ("#7cc8ff", "#b79bff", "#06182a", "#0a0d18", "#b3e0ff", "#3f86c4"),
+    ("#ffb36b", "#ff7a9a", "#2a1405", "#120c0a", "#ffd2a6", "#c7782f"),
+    ("#b79bff", "#6ee7d8", "#160c2e", "#0d0a18", "#d6c8ff", "#7a5fd1"),
+    ("#6ee7b7", "#7cc8ff", "#062218", "#08110e", "#b3f3d9", "#2fa57a"),
+    ("#ff8f8f", "#ffd36b", "#2a0808", "#120a0b", "#ffc2c2", "#c4524f"),
+    ("#e8e36b", "#8fa8ff", "#1f1d04", "#0f0f0a", "#f4f1b0", "#a8a32c"),
+]
+print(*schemes[zlib.crc32(sys.argv[1].encode()) % len(schemes)])
+PY
+)
+
+echo "✦ creating $DEST"
+mkdir -p "$ROOT"
+cp -r "$KIT/templates/app" "$DEST"
+esc() { printf '%s' "$1" | sed -e 's/[\/&|]/\\&/g'; }
+find "$DEST" -type f -print0 | xargs -0 sed -i \
+  -e "s|__ID__|$id|g" -e "s|__NAME__|$(esc "$name")|g" -e "s|__TAGLINE__|$(esc "$tagline")|g" \
+  -e "s|__MASCOT__|$(esc "$mascot")|g" -e "s|__KIT__|$KIT|g" -e "s|__KIT_VERSION__|$KIT_VERSION|g" \
+  -e "s|__KIT_MAJOR__|${KIT_VERSION%%.*}|g" -e "s|__ACCENT__|$ACCENT|g" -e "s|__ACCENT2__|$ACCENT2|g" \
+  -e "s|__INK__|$INK|g" -e "s|__BG__|$BG|g" -e "s|__LIGHT__|$LIGHT|g" -e "s|__DEEP__|$DEEP|g"
+
+node "$KIT/bin/nook-persona.mjs" check "$DEST/web/src/persona.json"
+node "$KIT/bin/nook-persona.mjs" icon "$DEST/web/src/persona.json" > "$DEST/web/public/icon.svg"
+
+if [[ -z "${NOOK_NO_INSTALL:-}" ]]; then
+  (cd "$DEST/web" && npm install --no-audit --no-fund --loglevel=error && npm run build --silent)
+  python3 - "$DEST" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path.home() / ".config" / "nook" / "config.json"
+cfg = json.loads(p.read_text()) if p.exists() else {}
+apps = cfg.setdefault("apps", [])
+if sys.argv[1] not in apps:
+    apps.append(sys.argv[1])
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text(json.dumps(cfg, indent=2) + "\n")
+print(f"✦ registered in {p}")
+PY
+fi
+
+(cd "$DEST" && git init -q -b main && git add -A && git commit -qm "Scaffold $name from @nook/kit $KIT_VERSION")
+cat <<MSG
+
+✔ $name is ready at $DEST
+
+Next:
+  1. Give $mascot a real look and voice: $DEST/web/src/persona.json
+     (preview every mood: node $KIT/bin/nook-persona.mjs sheet web/src/persona.json > /tmp/moods.html)
+  2. systemctl --user restart nook    → it appears on the Nook home
+  3. cd $DEST/web && npm run dev      → live reload on http://localhost:5173/$id/
+MSG

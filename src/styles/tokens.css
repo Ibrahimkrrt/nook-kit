@@ -36,12 +36,6 @@
   --glow-b: var(--accent-2);
   --bg: var(--night-900);
 
-  /* derived from persona: never set these by hand */
-  --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
-  --accent-softer: color-mix(in oklab, var(--accent) 8%, transparent);
-  --accent-line: color-mix(in oklab, var(--accent) 45%, transparent);
-  --accent-deep: color-mix(in oklab, var(--accent) 62%, black);
-  --accent-text: color-mix(in oklab, var(--accent) 78%, white);
 
   /* ---------- 2. semantic ---------- */
   --text: var(--night-50);
@@ -52,9 +46,6 @@
   --fill-1: rgb(255 255 255 / 0.04);
   --fill-2: rgb(255 255 255 / 0.07);
   --fill-3: rgb(255 255 255 / 0.11);
-  --sunken: rgb(0 0 0 / 0.28);
-  --surface: color-mix(in oklab, var(--night-800) 70%, transparent);
-  --surface-solid: var(--night-850);
   --overlay: rgb(5 4 11 / 0.66);
 
   --ok: var(--mint-400);
@@ -95,8 +86,6 @@
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.4);
   --shadow-2: 0 2px 6px rgb(0 0 0 / 0.25), 0 18px 40px -16px rgb(0 0 0 / 0.65);
   --shadow-3: 0 4px 12px rgb(0 0 0 / 0.3), 0 40px 80px -24px rgb(0 0 0 / 0.75);
-  --glow: 0 0 0 1px var(--accent-line), 0 12px 40px -10px color-mix(in oklab, var(--accent) 55%, transparent);
-  --ring: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent);
 
   /* ---------- motion (CSS side; JS springs live in motion.js) ---------- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -112,4 +101,25 @@
   --z-toast: 60;
 
   color-scheme: dark;
+}
+
+/* ---------- derived from the persona ----------
+   Custom properties are resolved where they're declared, so anything computed from --accent / --bg
+   is re-declared on .nk-persona too: an element that sets its own persona colours (e.g. an app
+   card on the Nook home) gets correctly tinted soft/line/glow values, not the page's. */
+:root, .nk-persona {
+  --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
+  --accent-softer: color-mix(in oklab, var(--accent) 8%, transparent);
+  --accent-line: color-mix(in oklab, var(--accent) 45%, transparent);
+  --accent-deep: color-mix(in oklab, var(--accent) 62%, black);
+  --accent-text: color-mix(in oklab, var(--accent) 78%, white);
+
+  /* surfaces are tinted by the persona's background, so every app's glass feels like its own */
+  --surface-solid: color-mix(in oklab, var(--bg), white 6%);
+  --surface: color-mix(in oklab, color-mix(in oklab, var(--bg), white 7%) 72%, transparent);
+  --sunken: color-mix(in oklab, color-mix(in oklab, var(--bg), black 40%) 70%, transparent);
+  --bubble: color-mix(in oklab, var(--bg), white 10%);
+
+  --glow: 0 0 0 1px var(--accent-line), 0 12px 40px -10px color-mix(in oklab, var(--accent) 55%, transparent);
+  --ring: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent);
 }
