@@ -1,0 +1,74 @@
+/* Nook base: reset, typography, focus, scene. */
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--t-md) / 1.55 var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent-text); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+::selection { background: color-mix(in oklab, var(--accent) 40%, transparent); color: var(--text); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+p { margin: 0; }
+.nk-display { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.01em; }
+.nk-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.nk-muted { color: var(--text-2); }
+.nk-faint { color: var(--text-3); }
+.nk-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--fill-3) transparent; }
+
+/* page-to-page morph between the Nook and an app (Chromium; ignored elsewhere) */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 260ms; }
+
+/* ---------- scene: the living background behind every page ---------- */
+.nk-scene { position: fixed; inset: 0; z-index: var(--z-scene); overflow: hidden; pointer-events: none; background: var(--bg); }
+.nk-scene::before { /* top light, tinted by the persona */
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(1100px 620px at 50% -12%, color-mix(in oklab, var(--glow-a) 20%, transparent), transparent 70%),
+    radial-gradient(900px 600px at 110% 110%, color-mix(in oklab, var(--glow-b) 14%, transparent), transparent 70%);
+}
+.nk-aurora {
+  position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; opacity: 0.22;
+  animation: nk-drift 32s var(--ease-in-out) infinite alternate;
+}
+.nk-aurora.a { background: radial-gradient(circle, var(--glow-a), transparent 62%); top: -38vmax; left: -22vmax; }
+.nk-aurora.b { background: radial-gradient(circle, var(--glow-b), transparent 62%); bottom: -42vmax; right: -26vmax; animation-duration: 40s; animation-direction: alternate-reverse; }
+@keyframes nk-drift { to { transform: translate3d(8vmax, 6vmax, 0) scale(1.12); } }
+
+.nk-dots { /* faint pixel grid that fades out toward the edges */
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1.2px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 75%);
+}
+.nk-grain {
+  position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.nk-star { position: absolute; width: 2px; height: 2px; background: #fff; opacity: 0.6; animation: nk-twinkle 3.2s steps(3) infinite; }
+.nk-star.big { width: 3px; height: 3px; background: var(--accent-text); box-shadow: 0 0 8px var(--accent); }
+@keyframes nk-twinkle { 50% { opacity: 0.12; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nk-aurora, .nk-star { animation: none; }
+  @view-transition { navigation: none; }
+}

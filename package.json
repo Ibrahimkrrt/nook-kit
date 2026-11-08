@@ -1,0 +1,35 @@
+{
+  "name": "@nook/kit",
+  "version": "1.0.0",
+  "description": "The Nook design system and bricks: tokens, components, motion, pixel mascots, Vite preset, Python back-end bricks and shared Claude Code skills.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "exports": {
+    ".": "./src/index.js",
+    "./icons": "./src/icons.js",
+    "./styles.css": "./src/styles/index.css",
+    "./vite": "./vite/preset.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "vite", "py", "skills", "templates", "bin", "docs"],
+  "sideEffects": ["*.css"],
+  "bin": { "nook-new-app": "bin/nook-new-app", "nook-persona": "bin/nook-persona.mjs" },
+  "scripts": {
+    "test": "cd py && python3 -m unittest discover -s tests",
+    "check": "node bin/check-kit.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.5",
+    "@fontsource-variable/geist-mono": "^5.2.5",
+    "@fontsource/pixelify-sans": "^5.2.5",
+    "lucide-react": "^1.70.0"
+  },
+  "peerDependencies": {
+    "@vitejs/plugin-react": ">=4",
+    "motion": ">=12",
+    "react": ">=19",
+    "react-dom": ">=19",
+    "vite": ">=6"
+  }
+}

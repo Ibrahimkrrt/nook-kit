@@ -1,0 +1,115 @@
+/* ==========================================================================
+   Nook design tokens
+   Three layers:
+     1. primitives  (raw palette, never used directly by apps)
+     2. semantic    (what a colour is FOR: --bg, --text, --line …)
+     3. persona     (--accent, --accent-2, --glow-*): set per app from persona.json
+   Apps only touch layer 3. Everything else follows.
+   ========================================================================== */
+
+:root {
+  /* ---------- 1. primitives ---------- */
+  --night-975: #05040b;
+  --night-950: #08070f;
+  --night-900: #0d0b18;
+  --night-850: #121020;
+  --night-800: #1a1729;
+  --night-700: #252139;
+  --night-600: #35304e;
+  --night-500: #4b4569;
+  --night-400: #6f6890;
+  --night-300: #9c96b9;
+  --night-200: #c9c5dd;
+  --night-100: #e9e7f3;
+  --night-50:  #f7f6fb;
+
+  --mint-400: #5ee3a1;
+  --sun-400: #ffcc66;
+  --rose-400: #ff6b81;
+  --sky-400: #6ec8ff;
+
+  /* ---------- 3. persona (defaults = Nook's lantern amber) ---------- */
+  --accent: #ffc56b;
+  --accent-2: #8f7bff;
+  --accent-ink: #1d1206;            /* text on top of --accent */
+  --glow-a: var(--accent);
+  --glow-b: var(--accent-2);
+  --bg: var(--night-900);
+
+  /* derived from persona: never set these by hand */
+  --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
+  --accent-softer: color-mix(in oklab, var(--accent) 8%, transparent);
+  --accent-line: color-mix(in oklab, var(--accent) 45%, transparent);
+  --accent-deep: color-mix(in oklab, var(--accent) 62%, black);
+  --accent-text: color-mix(in oklab, var(--accent) 78%, white);
+
+  /* ---------- 2. semantic ---------- */
+  --text: var(--night-50);
+  --text-2: var(--night-300);
+  --text-3: var(--night-400);
+  --line: rgb(255 255 255 / 0.08);
+  --line-2: rgb(255 255 255 / 0.14);
+  --fill-1: rgb(255 255 255 / 0.04);
+  --fill-2: rgb(255 255 255 / 0.07);
+  --fill-3: rgb(255 255 255 / 0.11);
+  --sunken: rgb(0 0 0 / 0.28);
+  --surface: color-mix(in oklab, var(--night-800) 70%, transparent);
+  --surface-solid: var(--night-850);
+  --overlay: rgb(5 4 11 / 0.66);
+
+  --ok: var(--mint-400);
+  --warn: var(--sun-400);
+  --danger: var(--rose-400);
+  --info: var(--sky-400);
+
+  /* ---------- type ---------- */
+  --font-ui: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Pixelify Sans", "Geist Variable", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --t-2xs: 11px;
+  --t-xs: 12px;
+  --t-sm: 13.5px;
+  --t-md: 15px;
+  --t-lg: 17px;
+  --t-xl: 22px;
+  --t-2xl: 30px;
+  --t-3xl: 42px;
+  --t-4xl: 56px;
+
+  /* ---------- space (4px grid) ---------- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-7: 32px; --s-8: 40px; --s-9: 48px; --s-10: 64px;
+  --gutter: clamp(16px, 4vw, 32px);
+
+  /* ---------- shape ---------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-full: 999px;
+
+  /* ---------- elevation ---------- */
+  --hl: inset 0 1px 0 rgb(255 255 255 / 0.07);                    /* top highlight on glass */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.25), 0 18px 40px -16px rgb(0 0 0 / 0.65);
+  --shadow-3: 0 4px 12px rgb(0 0 0 / 0.3), 0 40px 80px -24px rgb(0 0 0 / 0.75);
+  --glow: 0 0 0 1px var(--accent-line), 0 12px 40px -10px color-mix(in oklab, var(--accent) 55%, transparent);
+  --ring: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent);
+
+  /* ---------- motion (CSS side; JS springs live in motion.js) ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 360ms;
+
+  /* ---------- layers ---------- */
+  --z-scene: -1;
+  --z-bar: 20;
+  --z-sheet: 50;
+  --z-toast: 60;
+
+  color-scheme: dark;
+}
