@@ -162,3 +162,91 @@ class JobsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LLMTest(unittest.TestCase):
+    """nookkit.llm against a fake Ollama on a random local port."""
+
+    @classmethod
+    def setUpClass(cls):
+        import os
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        seen = cls.seen = []
+
+        class Fake(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def reply(self, obj):
+                body = json.dumps(obj).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self):
+                self.reply({"models": [{"name": "tiny:1b", "model": "tiny:1b"}]})
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                seen.append(body)
+                self.reply({"message": {"role": "assistant", "content": json.dumps({"folder": "Taxes/2024"})}})
+
+        cls.server = HTTPServer(("127.0.0.1", 0), Fake)
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+        cls.old = {k: os.environ.get(k) for k in ("NOOK_LLM_URL", "NOOK_LLM_MODEL")}
+        os.environ["NOOK_LLM_URL"] = f"http://127.0.0.1:{cls.server.server_port}"
+        os.environ["NOOK_LLM_MODEL"] = "tiny:1b"
+
+    @classmethod
+    def tearDownClass(cls):
+        import os
+        cls.server.shutdown()
+        for k, v in cls.old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_status_and_ask(self):
+        from nookkit import llm
+        st = llm.status(max_age=0)
+        self.assertTrue(st["running"] and st["ready"], st)
+        out = llm.ask_json("where?", {"type": "object"}, system="be brief")
+        self.assertEqual(out, {"folder": "Taxes/2024"})
+        sent = self.seen[-1]
+        self.assertEqual(sent["model"], "tiny:1b")
+        self.assertEqual(sent["format"], {"type": "object"})
+        self.assertEqual(sent["messages"][0]["role"], "system")
+
+    def test_refuses_non_local_urls(self):
+        from nookkit import llm
+        self.assertTrue(llm.is_local("http://localhost:11434"))
+        self.assertTrue(llm.is_local("http://[::1]:11434"))
+        self.assertFalse(llm.is_local("http://192.168.1.20:11434"))
+        self.assertFalse(llm.is_local("https://api.example.com"))
+        self.assertFalse(llm.is_local("file:///etc/passwd"))
+
+    def test_unreachable_is_not_ready(self):
+        import os
+        from nookkit import llm
+        os.environ["NOOK_LLM_URL"] = "http://127.0.0.1:9"
+        try:
+            st = llm.status(max_age=0)
+            self.assertFalse(st["running"])
+            with self.assertRaises(llm.LLMError):
+                llm.ask_json("x", {"type": "object"})
+        finally:
+            os.environ["NOOK_LLM_URL"] = f"http://127.0.0.1:{self.server.server_port}"
+
+
+class ExtractTextTest(unittest.TestCase):
+    def test_unknown_types_give_empty_text(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "x.txt"
+            p.write_text("hello")
+            self.assertEqual(files.extract_text(p), "")
+            self.assertEqual(files.extract_text(Path(d) / "missing.pdf"), "")

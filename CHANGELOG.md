@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 (2026-11-09)
+
+- `useContextMenu()`: right-click, long-press (touch) and Shift+F10 menus with keyboard navigation, type-ahead,
+  edge flipping and focus return. Provided by `NookProvider`. New token `--z-menu`.
+- `nookkit.llm`: optional local language model (Ollama, loopback only) with JSON-schema answers and a cached `status()`.
+- `nookkit.files.extract_text()`: text from PDFs (pdftotext) and images (tesseract, if installed).
+- The Nook imports each app's `api/` folder as a package (relative imports between route modules).
+
 ## 1.0.0 (2026-11-08)
 
 First release. Pixel Hub becomes the Nook.

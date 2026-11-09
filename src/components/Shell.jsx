@@ -5,8 +5,9 @@ import { applyPersona } from '../persona.js';
 import { Sprite } from '../mascot/Mascot.jsx';
 import { ToastProvider } from './Toast.jsx';
 import { ConfirmProvider } from './Sheet.jsx';
+import { MenuProvider } from './Menu.jsx';
 
-/** Wrap every app once: applies the persona's colours, motion settings, toasts and confirm(). */
+/** Wrap every app once: applies the persona's colours, motion settings, toasts, confirm() and context menus. */
 export function NookProvider({ persona, children }) {
   useEffect(() => {
     applyPersona(persona);
@@ -15,7 +16,7 @@ export function NookProvider({ persona, children }) {
   return (
     <MotionConfig reducedMotion="user">
       <ToastProvider>
-        <ConfirmProvider>{children}</ConfirmProvider>
+        <ConfirmProvider><MenuProvider>{children}</MenuProvider></ConfirmProvider>
       </ToastProvider>
     </MotionConfig>
   );

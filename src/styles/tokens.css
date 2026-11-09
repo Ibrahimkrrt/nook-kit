@@ -99,6 +99,7 @@
   --z-bar: 20;
   --z-sheet: 50;
   --z-toast: 60;
+  --z-menu: 70;
 
   color-scheme: dark;
 }

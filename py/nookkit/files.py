@@ -76,3 +76,30 @@ def inside(path, folder):
         return Path(folder).resolve() in Path(path).resolve().parents
     except OSError:
         return False
+
+
+def extract_text(path, max_chars=6000, pages=3):
+    """Readable text from a document, for search or a language model. "" when there's none.
+
+    PDFs go through poppler's pdftotext (first few pages); images through tesseract when it's
+    installed (eng+fra). Never raises: a document we can't read just has no text.
+    """
+    import shutil
+    import subprocess
+
+    path = Path(path)
+    ext = path.suffix.lower()
+    try:
+        if ext == ".pdf" and shutil.which("pdftotext"):
+            out = subprocess.run(["pdftotext", "-q", "-layout", "-l", str(pages), "-enc", "UTF-8", str(path), "-"],
+                                 capture_output=True, timeout=20).stdout
+        elif ext in (".png", ".jpg", ".jpeg", ".webp") and shutil.which("tesseract"):
+            out = subprocess.run(["tesseract", str(path), "-", "-l", "eng+fra"], capture_output=True, timeout=40).stdout
+        else:
+            return ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    text = out.decode("utf-8", "replace")
+    text = re.sub(r"[ \t]{2,}", "  ", text)
+    text = re.sub(r"\n\s*\n+", "\n", text)
+    return text.strip()[:max_chars]

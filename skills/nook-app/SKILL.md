@@ -19,7 +19,10 @@ For anything visual also load the **nook-design** skill.
 2. **Use the bricks, don't re-invent them.** Accounts → `nookkit.auth.Accounts`. SQLite → `nookkit.store.Database`
    (append migrations, never edit old ones). Uploads → `nookkit.files.decode_upload` + `safe_name` + `unique_path` + `inside`.
    Background work with progress → `nookkit.jobs.Job`. Data folders → `nookkit.paths`.
-   Front end: kit components, `api('/api/<id>')`, `usePoll`, `useFlash`, `useToast`, `useConfirm`.
+   Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (Ollama, loopback only; always keep a
+   no-AI fallback and show which one answered).
+   Front end: kit components, `api('/api/<id>')`, `usePoll`, `useFlash`, `useToast`, `useConfirm`,
+   `useContextMenu` (right-click menus; the same actions must also be reachable from a visible "More" button).
 3. **Something reusable belongs in the kit**, not copy-pasted into two apps. Add it to the kit, test it,
    release a minor version (see below), then update the apps.
 4. **App code never imports another app.** Apps talk to the Nook only through the manifest, `persona.json`
@@ -54,8 +57,12 @@ For anything visual also load the **nook-design** skill.
 | Kit Python tests | `cd ~/dev/pixel/kit && npm test` |
 | Test a server copy without touching the real one | `NOOK_PORT=8799 NOOK_NO_MDNS=1 python3 ~/dev/pixel/hub/server/nook.py` |
 
-When killing a test copy, use `pkill -f "[p]ython3 nook.py"` in its own command (a plain pattern also
-matches the shell running it).
+Test copies with real-looking data: also set `HOME=<scratch dir>` (copy `~/.config/nook/config.json` there) so
+app databases and files go to the sandbox, never the user's. Stop a test copy **by port**, never by name (a
+name pattern also kills the live `nook.service`):
+`kill $(ss -ltnp | grep ':8799 ' | grep -o 'pid=[0-9]*' | cut -d= -f2)`.
+Motion components (`motion.li`, `motion.button`…) claim `onDragStart` for their own gestures: put native
+HTML drag-and-drop handlers on a plain element inside them.
 
 ## Changing the kit
 

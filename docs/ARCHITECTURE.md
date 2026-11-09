@@ -40,7 +40,8 @@
 - `id`: lowercase; it becomes the URL (`/chomp/`) and API prefix (`/api/chomp/`). Reserved: nook, api, assets, icons, fonts.
 - `engine`: the `nookkit` versions the back end works with. A mismatch → the app is skipped, with the reason on the home screen and in `nook.py --check`.
 
-**Back end:** `api/routes.py` exports `ROUTES = {"GET /x": fn, "POST /y": fn}`; `fn(req)` gets a
+**Back end:** `api/` is imported as a package, so `routes.py` can split code into siblings
+(`from .rules import classify`). `api/routes.py` exports `ROUTES = {"GET /x": fn, "POST /y": fn}`; `fn(req)` gets a
 `nookkit.http.Request` (`body`, `query`, `headers`, `remote`, `cookie()`, `str()`) and returns
 `req.json(...)`, `req.error(msg, code)` or `req.file(path, …)`. POST bodies are JSON only (CSRF defence),
 so uploads travel base64 (`fileToBase64` ↔ `nookkit.files.decode_upload`).
@@ -50,6 +51,12 @@ it with SPA fallback; `/assets/*` is cached forever (hashed names).
 
 **Persona:** `web/src/persona.json` is read by the app *and* by the Nook (to draw the app's card),
 so the home screen shows every app's real mascot without importing app code.
+
+**Local AI (optional):** `nookkit.llm` talks to Ollama on this computer only (loopback URLs; anything else is
+refused). `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`. Settings in
+`~/.config/nook/config.json → "llm": {"url", "model", "timeout"}` (default `qwen2.5:3b`). An app must work
+without it: keep a rule-based fallback and say in the UI which one is answering.
+`nookkit.files.extract_text(path)` gives a document's text (pdftotext; tesseract for images when installed).
 
 **Data:** private app data in `~/.local/share/nook/<id>/` (`nookkit.paths.data_dir`). Files the user
 should browse go in a visible folder (`~/Downloads/Chomp`, `~/Documents/Burrow`).

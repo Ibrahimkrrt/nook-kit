@@ -54,7 +54,7 @@ Scale: `--t-2xs 11` · `xs 12` · `sm 13.5` · `md 15` · `lg 17` · `xl 22` · 
 
 | Component | Use it for |
 |---|---|
-| `NookProvider persona` | Wrap the app once: persona colours, reduced motion, toasts, confirm() |
+| `NookProvider persona` | Wrap the app once: persona colours, reduced motion, toasts, confirm(), context menus |
 | `AppShell persona actions width` | Standard page: living scene, top bar (back to Nook, identity, actions), main column |
 | `Scene` | The animated background on its own (the home screen uses it) |
 | `Card tone="accent\|sunken" animate` / `CardHead` | Glass surfaces. `accent` = the hero card with the mascot |
@@ -66,9 +66,14 @@ Scale: `--t-2xs 11` · `xs 12` · `sm 13.5` · `md 15` · `lg 17` · `xl 22` · 
 | `Stat`, `Progress value cells`, `Empty`, `Alert` | Numbers, pixel-cell progress, empty states, warnings |
 | `Sheet` / `useConfirm()` | Modal dialog (bottom sheet on phones) / promise-based yes-no |
 | `useToast()` | Short confirmations: `toast({ title, description, tone })` |
+| `useContextMenu()` | Right-click / long-press / Shift+F10 menus: `{...menu.bind(() => items)}` on a row, `menu.openAt(el, items)` from a "More" button. Items: `{ label, icon, onSelect, danger, disabled, hint }`, `'-'`, `{ heading }` |
 | `Mascot def mood size onPoke vt` / `Sprite` | The animated character / static pixels |
 | `Speech text sub` | The mascot's typewriter speech bubble |
 | `Confetti` | Pixel burst for real achievements (download done), not for every click |
+
+**Context menus are shortcuts, never the only way.** Every action in a menu must also be reachable without
+it (a visible `Ellipsis` "More" button that opens the same items, a toolbar button…). Text fields and
+selected text keep the browser's own menu; Shift+Alt+right-click always gets it too.
 
 Icons: `import { Film } from '@nook/kit/icons'` (lucide, 1.5–2px strokes). Never emoji as UI icons.
 
