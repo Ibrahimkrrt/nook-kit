@@ -14,4 +14,4 @@ Bricks:
   nookkit.llm     optional local language model (Ollama, loopback only) with JSON answers
   nookkit.semver  "does kit 1.2.0 satisfy ^1.0.0?"
 """
-__version__ = "1.1.0"
+__version__ = "1.2.0"

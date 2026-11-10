@@ -21,6 +21,8 @@ For anything visual also load the **nook-design** skill.
    Background work with progress → `nookkit.jobs.Job`. Data folders → `nookkit.paths`.
    Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (Ollama, loopback only; always keep a
    no-AI fallback and show which one answered).
+   Accounts with private data → `Accounts(db, id, idle_minutes=15)` + `useIdle`/`IdleBadge`/`IdleWarning`
+   (inactivity logout, enforced on the server too).
    Front end: kit components, `api('/api/<id>')`, `usePoll`, `useFlash`, `useToast`, `useConfirm`,
    `useContextMenu` (right-click menus; the same actions must also be reachable from a visible "More" button).
 3. **Something reusable belongs in the kit**, not copy-pasted into two apps. Add it to the kit, test it,
@@ -61,6 +63,8 @@ Test copies with real-looking data: also set `HOME=<scratch dir>` (copy `~/.conf
 app databases and files go to the sandbox, never the user's. Stop a test copy **by port**, never by name (a
 name pattern also kills the live `nook.service`):
 `kill $(ss -ltnp | grep ':8799 ' | grep -o 'pid=[0-9]*' | cut -d= -f2)`.
+Don't test timers with Playwright's `clock.fastForward`/`runFor`: they freeze Motion's animations (sheets
+never finish closing). Shorten the real delay instead (e.g. set it in the sandbox DB) and wait in real time.
 Motion components (`motion.li`, `motion.button`…) claim `onDragStart` for their own gestures: put native
 HTML drag-and-drop handlers on a plain element inside them.
 

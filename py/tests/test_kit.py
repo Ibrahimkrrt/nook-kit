@@ -164,6 +164,51 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class IdleTest(unittest.TestCase):
+    """Sessions die on the server after the user's chosen inactivity, whatever the browser does."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = store.Database(Path(self.tmp.name) / "a.db")
+        self.acc = auth.Accounts(self.db, "demo", idle_minutes=15)
+        self.now = 1_000_000.0
+        self.real_time = auth.time.time
+        auth.time.time = lambda: self.now
+        self.c = cookie_of(self.acc.signup(req({"username": "abc", "password": "12345678"})))
+        self.route = self.acc.required(lambda r, u: r.json({"ok": True}))
+
+    def tearDown(self):
+        auth.time.time = self.real_time
+        self.tmp.cleanup()
+
+    def get(self):
+        return self.route(req(cookie=self.c, method="GET"))[0]
+
+    def test_activity_keeps_it_alive_and_silence_ends_it(self):
+        me = json.loads(self.acc.me(req(cookie=self.c, method="GET"))[2])["user"]
+        self.assertEqual((me["idle"], me["idle_choices"]), (900, [5, 10, 15, 30, 60]))
+        for _ in range(4):                  # an hour of use, a request every 14 minutes
+            self.now += 14 * 60
+            self.assertEqual(self.get(), 200)
+        self.now += 15 * 60 + auth.IDLE_GRACE + 1
+        self.assertEqual(self.get(), 401)
+        self.assertIsNone(self.db.one("SELECT 1 FROM sessions"))  # deleted, not just refused
+
+    def test_user_picks_a_shorter_delay(self):
+        alive = self.acc.routes()
+        self.assertEqual(alive["POST /session/idle"](req({"minutes": 7}, cookie=self.c))[0], 400)
+        self.assertEqual(json.loads(alive["POST /session/idle"](req({"minutes": 5}, cookie=self.c))[2])["idle"], 300)
+        self.now += 5 * 60 + auth.IDLE_GRACE + 1
+        self.assertEqual(alive["POST /session/alive"](req(cookie=self.c))[0], 401)
+
+    def test_apps_without_idle_are_unchanged(self):
+        acc = auth.Accounts(self.db, "other")
+        self.assertNotIn("POST /session/alive", acc.routes())
+        c = cookie_of(acc.signup(req({"username": "zzz", "password": "12345678"})))
+        self.now += 7 * 86400
+        self.assertEqual(acc.required(lambda r, u: r.json({}))(req(cookie=c, method="GET"))[0], 200)
+
+
 class LLMTest(unittest.TestCase):
     """nookkit.llm against a fake Ollama on a random local port."""
 

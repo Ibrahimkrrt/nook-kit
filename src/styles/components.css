@@ -245,3 +245,23 @@
 .nk-menu-sep { height: 1px; margin: 5px 6px; background: var(--line); }
 .nk-menu-head { padding: 8px 10px 4px; font-size: var(--t-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 @media (pointer: coarse) { .nk-menu-item { min-height: 44px; font-size: var(--t-md); } }
+
+/* ---------- inactivity countdown (useIdle) ---------- */
+.nk-idle {
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px 0 9px; border-radius: var(--r-full);
+  border: 1px solid var(--line); background: var(--fill-1); color: var(--text-2); font-size: var(--t-xs); cursor: pointer;
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
+}
+.nk-idle:hover { color: var(--text); border-color: var(--line-2); }
+.nk-idle svg { width: 16px; height: 16px; transform: rotate(-90deg); }
+.nk-idle-track { fill: none; stroke: var(--fill-3); stroke-width: 2.5; }
+.nk-idle-ring { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke var(--dur-2); }
+.nk-idle[data-tone="warn"] { color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+.nk-idle[data-tone="warn"] .nk-idle-ring { stroke: var(--warn); }
+.nk-idle[data-tone="danger"] { color: var(--danger); border-color: color-mix(in oklab, var(--danger) 40%, transparent); background: color-mix(in oklab, var(--danger) 10%, transparent); }
+.nk-idle[data-tone="danger"] .nk-idle-ring { stroke: var(--danger); }
+.nk-idle-warn { display: grid; justify-items: center; gap: var(--s-3); text-align: center; padding: var(--s-2) 0; }
+.nk-idle-big { font-size: 44px; font-weight: 600; letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.nk-idle-warn p { display: flex; align-items: center; gap: 8px; font-size: var(--t-sm); }
+.nk-idle-warn p svg { width: 16px; height: 16px; flex: none; }
+@media (prefers-reduced-motion: reduce) { .nk-idle-ring { transition: none; } }

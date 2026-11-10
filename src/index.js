@@ -10,6 +10,7 @@ export { Card, CardHead, Chip, Badge, Stat, Progress, Empty, Alert } from './com
 export { Sheet, useConfirm } from './components/Sheet.jsx';
 export { useToast } from './components/Toast.jsx';
 export { useContextMenu } from './components/Menu.jsx';
+export { useIdle, IdleBadge, IdleWarning } from './components/Idle.jsx';
 export { Speech } from './components/Speech.jsx';
 export { Confetti } from './components/Confetti.jsx';
 
@@ -21,4 +22,4 @@ export { personaVars, applyPersona, say, partOfDay } from './persona.js';
 export { api, getJSON, postJSON, fileToBase64, store, ApiError } from './api.js';
 export { useTypewriter, useInterval, usePoll, useStoredState, useFlash } from './hooks.js';
 
-export const KIT_VERSION = '1.1.0';
+export const KIT_VERSION = '1.2.0';

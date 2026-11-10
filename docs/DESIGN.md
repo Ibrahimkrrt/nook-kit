@@ -66,6 +66,7 @@ Scale: `--t-2xs 11` · `xs 12` · `sm 13.5` · `md 15` · `lg 17` · `xl 22` · 
 | `Stat`, `Progress value cells`, `Empty`, `Alert` | Numbers, pixel-cell progress, empty states, warnings |
 | `Sheet` / `useConfirm()` | Modal dialog (bottom sheet on phones) / promise-based yes-no |
 | `useToast()` | Short confirmations: `toast({ title, description, tone })` |
+| `useIdle({ seconds, onExpire, ping, channel, paused })` + `IdleBadge` / `IdleWarning` | Inactivity logout for apps with accounts: countdown in the top bar, "Still there?" in the last minute |
 | `useContextMenu()` | Right-click / long-press / Shift+F10 menus: `{...menu.bind(() => items)}` on a row, `menu.openAt(el, items)` from a "More" button. Items: `{ label, icon, onSelect, danger, disabled, hint }`, `'-'`, `{ heading }` |
 | `Mascot def mood size onPoke vt` / `Sprite` | The animated character / static pixels |
 | `Speech text sub` | The mascot's typewriter speech bubble |

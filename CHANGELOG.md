@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 (2026-11-10)
+
+- Inactivity logout. Server: `Accounts(..., idle_minutes=15)` deletes sessions unused for that long (plus a
+  75 s grace), per-user choice of 5/10/15/30/60 min (`POST /session/idle`), heartbeat `POST /session/alive`.
+  Browser: `useIdle()` (deadline-based, survives sleep, one clock shared by all tabs, pausable),
+  `IdleBadge` (countdown ring for the top bar) and `IdleWarning` (the last-minute "Still there?" dialog).
+- `Accounts.public()` is now an instance method (it adds `idle` / `idle_choices` when enabled).
+
 ## 1.1.0 (2026-11-09)
 
 - `useContextMenu()`: right-click, long-press (touch) and Shift+F10 menus with keyboard navigation, type-ahead,

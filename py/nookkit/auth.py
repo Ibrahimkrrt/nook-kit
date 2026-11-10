@@ -10,6 +10,10 @@ Security choices (don't weaken them in an app):
   * cookie: HttpOnly, SameSite=Lax, Path=/api/<app> (so apps never see each other's sessions)
   * 8 wrong passwords for a username → 10 minute pause; every failure costs 0.5 s
   * CSRF is covered by the hub: POSTs must be JSON and come from a known Origin
+  * optional inactivity logout: Accounts(db, "burrow", idle_minutes=15). A session unused for that long
+    (plus a short grace for the browser's heartbeat) is deleted on the server, whatever the browser does.
+    Each user can pick their own delay from IDLE_CHOICES (POST /session/idle); the browser keeps the
+    session alive while the person is actually using the page (POST /session/alive).
 """
 import hashlib
 import hmac
@@ -22,6 +26,9 @@ from .http import with_headers
 
 USERNAME = re.compile(r"^[a-z0-9_.-]{3,24}$")
 MIN_PASSWORD = 8
+IDLE_CHOICES = (5, 10, 15, 30, 60)   # minutes a user can pick
+IDLE_GRACE = 75                      # seconds: the browser pings at most every 30 s, and logs out first
+TOUCH_EVERY = 15                     # seconds between last_seen writes
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -49,7 +56,7 @@ def _token_hash(token):
 
 
 class Accounts:
-    def __init__(self, db, app_id, session_days=30, max_fails=8, lock_seconds=600):
+    def __init__(self, db, app_id, session_days=30, max_fails=8, lock_seconds=600, idle_minutes=None):
         self.db = db
         self.cookie = f"{app_id}_sid"
         self.path = f"/api/{app_id}"
@@ -57,7 +64,15 @@ class Accounts:
         self.max_fails, self.lock_seconds = max_fails, lock_seconds
         self._fails = {}
         self._fails_lock = threading.Lock()
+        self.idle_default = idle_minutes
         db.ensure(SCHEMA)
+        # columns added after 1.0 (bricks own their schema, so they upgrade it themselves)
+        self._add_column("sessions", "last_seen", "REAL")
+        self._add_column("users", "idle_minutes", "INTEGER")
+
+    def _add_column(self, table, name, decl):
+        if name not in {r["name"] for r in self.db.all(f"PRAGMA table_info({table})")}:
+            self.db.ensure(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
 
     # ---------- helpers ----------
     def _cookie(self, token, max_age=None):
@@ -68,7 +83,8 @@ class Accounts:
         token = secrets.token_urlsafe(32)
         now = time.time()
         self.db.run("DELETE FROM sessions WHERE expires < ?", (now,))
-        self.db.run("INSERT INTO sessions VALUES (?, ?, ?)", (_token_hash(token), user_id, now + self.max_age))
+        self.db.run("INSERT INTO sessions (token_hash, user_id, expires, last_seen) VALUES (?, ?, ?, ?)",
+                    (_token_hash(token), user_id, now + self.max_age, now))
         return self._cookie(token)
 
     def _locked(self, username):
@@ -84,17 +100,36 @@ class Accounts:
             count, since = self._fails.get(username, (0, time.time()))
             self._fails[username] = (count + 1, since)
 
-    @staticmethod
-    def public(user):
-        return {"username": user["username"], "display": user["display"]}
+    def idle_seconds(self, user):
+        """This user's inactivity limit in seconds, or None when the app doesn't log out idle sessions."""
+        if not self.idle_default:
+            return None
+        return int((user["idle_minutes"] or self.idle_default) * 60)
 
-    def current(self, req):
+    def public(self, user):
+        out = {"username": user["username"], "display": user["display"]}
+        if self.idle_default:
+            out["idle"] = self.idle_seconds(user)
+            out["idle_choices"] = list(IDLE_CHOICES)
+        return out
+
+    def current(self, req, touch=True):
         token = req.cookie(self.cookie)
         if not token:
             return None
-        return self.db.one(
-            """SELECT u.id, u.username, u.display FROM sessions s JOIN users u ON u.id = s.user_id
-               WHERE s.token_hash = ? AND s.expires > ?""", (_token_hash(token), time.time()))
+        now, th = time.time(), _token_hash(token)
+        row = self.db.one(
+            """SELECT u.id, u.username, u.display, u.idle_minutes, s.last_seen FROM sessions s JOIN users u ON u.id = s.user_id
+               WHERE s.token_hash = ? AND s.expires > ?""", (th, now))
+        if not row:
+            return None
+        idle = self.idle_seconds(row)
+        if idle and row["last_seen"] and now - row["last_seen"] > idle + IDLE_GRACE:
+            self.db.run("DELETE FROM sessions WHERE token_hash = ?", (th,))
+            return None
+        if touch and (not row["last_seen"] or now - row["last_seen"] > TOUCH_EVERY):
+            self.db.run("UPDATE sessions SET last_seen = ? WHERE token_hash = ?", (now, th))
+        return row
 
     def required(self, fn):
         """Decorator: fn(req, user); answers 401 when nobody is logged in."""
@@ -125,7 +160,7 @@ class Accounts:
         uid = self.db.run(
             "INSERT INTO users (username, display, pw_salt, pw_hash, created) VALUES (?, ?, ?, ?, ?)",
             (username, display, salt, hash_password(password, salt), time.time()))
-        user = self.db.one("SELECT id, username, display FROM users WHERE id = ?", (uid,))
+        user = self.db.one("SELECT id, username, display, idle_minutes FROM users WHERE id = ?", (uid,))
         return with_headers(req.json({"user": self.public(user)}), **{"Set-Cookie": self._start_session(uid)})
 
     def login(self, req):
@@ -141,6 +176,20 @@ class Accounts:
         with self._fails_lock:
             self._fails.pop(username, None)
         return with_headers(req.json({"user": self.public(user)}), **{"Set-Cookie": self._start_session(user["id"])})
+
+    def alive(self, req, user):
+        """Heartbeat from a page the person is using (reading counts, even without requests)."""
+        return req.json({"ok": True, "idle": self.idle_seconds(user)})
+
+    def set_idle(self, req, user):
+        try:
+            minutes = int(req.body.get("minutes"))
+        except (TypeError, ValueError):
+            minutes = 0
+        if minutes not in IDLE_CHOICES:
+            return req.error(f"Pick one of {', '.join(map(str, IDLE_CHOICES))} minutes")
+        self.db.run("UPDATE users SET idle_minutes = ? WHERE id = ?", (minutes, user["id"]))
+        return req.json({"idle": minutes * 60})
 
     def logout(self, req):
         if token := req.cookie(self.cookie):
@@ -168,4 +217,6 @@ class Accounts:
             "POST /login": self.login,
             "POST /logout": self.logout,
             "POST /password": self.required(self.change_password),
+            **({"POST /session/alive": self.required(self.alive),
+                "POST /session/idle": self.required(self.set_idle)} if self.idle_default else {}),
         }

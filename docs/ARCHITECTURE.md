@@ -52,6 +52,10 @@ it with SPA fallback; `/assets/*` is cached forever (hashed names).
 **Persona:** `web/src/persona.json` is read by the app *and* by the Nook (to draw the app's card),
 so the home screen shows every app's real mascot without importing app code.
 
+**Accounts:** `nookkit.auth.Accounts`. Apps holding private data turn on inactivity logout with
+`idle_minutes=…`: the server deletes idle sessions; the page shows the countdown (`useIdle`, `IdleBadge`,
+`IdleWarning`) and pings `/session/alive` while the person is actually using it.
+
 **Local AI (optional):** `nookkit.llm` talks to Ollama on this computer only (loopback URLs; anything else is
 refused). `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`. Settings in
 `~/.config/nook/config.json → "llm": {"url", "model", "timeout"}` (default `qwen2.5:3b`). An app must work
