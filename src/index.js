@@ -22,4 +22,4 @@ export { personaVars, applyPersona, say, partOfDay } from './persona.js';
 export { api, getJSON, postJSON, fileToBase64, store, ApiError } from './api.js';
 export { useTypewriter, useInterval, usePoll, useStoredState, useFlash } from './hooks.js';
 
-export const KIT_VERSION = '1.5.0';
+export const KIT_VERSION = '1.5.1';

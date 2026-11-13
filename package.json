@@ -1,6 +1,6 @@
 {
   "name": "@nook/kit",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "The Nook design system and bricks: tokens, components, motion, pixel mascots, Vite preset, Python back-end bricks and shared Claude Code skills.",
   "type": "module",
   "license": "UNLICENSED",

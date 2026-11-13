@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 (2026-11-13)
+
+- `llm.status()` also reports `vram_gb` (AMD via sysfs, NVIDIA via nvidia-smi), so apps don't call a model
+  "too big" when it fits the graphics card.
+
 ## 1.5.0 (2026-11-13)
 
 - `nookkit.llm` uses the models already on the PC: besides Ollama it speaks to OpenAI-style local servers

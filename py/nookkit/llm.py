@@ -228,7 +228,8 @@ def status(max_age=10):
             value["error"] = f"{s['model']} isn't on {name}; using {chosen}"
         pick = {"api": api, "url": url, "model": chosen, "token": s["token"], "timeout": s["timeout"], "name": name}
         break
-    value["ram_gb"] = ram  # so apps can say "too big for this PC" next to a 27B model
+    value["ram_gb"] = ram  # so apps can say which models fit the graphics card, and which are too big
+    value["vram_gb"] = _vram_gb()
     _status_cache.update(at=now, value=value, pick=pick)
     return value
 
@@ -238,6 +239,25 @@ def _ram_gb():
         return round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)
     except (ValueError, OSError, AttributeError):
         return None
+
+
+def _vram_gb():
+    """The biggest graphics card's memory (AMD via sysfs, NVIDIA via nvidia-smi), or None."""
+    import glob
+    import subprocess
+    sizes = []
+    for f in glob.glob("/sys/class/drm/card*/device/mem_info_vram_total"):
+        try:
+            sizes.append(int(open(f).read()) / 2**30)
+        except (OSError, ValueError):
+            pass
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=2)
+        sizes += [int(x) / 1024 for x in out.stdout.split() if x.isdigit()] if out.returncode == 0 else []
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return round(max(sizes), 1) if sizes else None
 
 
 def _strip_think(text):
