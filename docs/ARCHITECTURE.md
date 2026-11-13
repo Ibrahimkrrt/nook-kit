@@ -38,6 +38,8 @@
 ```
 
 - `id`: lowercase; it becomes the URL (`/chomp/`) and API prefix (`/api/chomp/`). Reserved: nook, api, assets, icons, fonts.
+- `lock_on_leave` (optional, `true` for apps with private data): the Nook home logs the app out every time
+  it is shown, so going back to the Nook by any means ends the session (kit `leaveApps`).
 - `engine`: the `nookkit` versions the back end works with. A mismatch → the app is skipped, with the reason on the home screen and in `nook.py --check`.
 
 **Back end:** `api/` is imported as a package, so `routes.py` can split code into siblings
@@ -54,7 +56,9 @@ so the home screen shows every app's real mascot without importing app code.
 
 **Accounts:** `nookkit.auth.Accounts`. Apps holding private data turn on inactivity logout with
 `idle_minutes=…`: the server deletes idle sessions; the page shows the countdown (`useIdle`, `IdleBadge`,
-`IdleWarning`) and pings `/session/alive` while the person is actually using it.
+`IdleWarning`) and pings `/session/alive` while the person is actually using it. With `"lock_on_leave": true`
+in the manifest, coming back to the Nook home ends the session too: `useIdle`'s `onExpire` gets `'left'`, and
+`useStillHere(check, onGone)` catches a logged-in page the browser restores from its back/forward cache.
 
 **Local AI (optional):** `nookkit.llm` talks to Ollama on this computer only (loopback URLs; anything else is
 refused). `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`. Settings in

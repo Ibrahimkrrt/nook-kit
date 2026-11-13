@@ -19,6 +19,8 @@ import { spring } from '../motion.js';
  * - While the person is active, `ping` tells the server at most every 30 s, so reading a page without
  *   making requests doesn't let the server-side session expire.
  * - `paused` (e.g. while uploads run) holds the clock at full.
+ * - onExpire(why): 'idle' (this tab's clock ran out), 'other-tab' (another tab's did), 'left' (the person
+ *   went back to the Nook home, which locks apps with "lock_on_leave": see leaveApps).
  */
 const ACTIVITY = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'];
 const PING_EVERY = 30_000;
@@ -54,11 +56,11 @@ export function useIdle({ seconds, onExpire, ping, channel = 'nook', warnAt = 60
     }
   }, [enabled, seconds]);
 
-  const expire = useCallback((fromOtherTab = false) => {
+  const expire = useCallback((fromOtherTab = false, why = null) => {
     if (expired.current) return;
     expired.current = true;
     if (!fromOtherTab) bc.current?.postMessage({ type: 'expired' });
-    cb.current.onExpire?.(fromOtherTab ? 'other-tab' : 'idle');
+    cb.current.onExpire?.(why || (fromOtherTab ? 'other-tab' : 'idle'));
   }, []);
 
   // one clock for every tab of this app
@@ -67,7 +69,7 @@ export function useIdle({ seconds, onExpire, ping, channel = 'nook', warnAt = 60
     const ch = new BroadcastChannel(`nook-idle-${channel}`);
     ch.onmessage = (e) => {
       if (e.data?.type === 'active') restart(true, e.data.at);
-      if (e.data?.type === 'expired') expire(true);
+      if (e.data?.type === 'expired') expire(true, e.data.why); // 'left': the Nook home locked this app
     };
     bc.current = ch;
     return () => { ch.close(); bc.current = null; };
@@ -156,4 +158,39 @@ export function IdleWarning({ idle, onLogout, title = 'Still there?', children }
       </div>
     </Sheet>
   );
+}
+
+/**
+ * Lock apps whose manifest says "lock_on_leave": true. The Nook home calls this every time it is shown, so
+ * going back to the Nook by any means (its button, the Back button, typing the address) ends the session:
+ * the server forgets it, and tabs of that app still open log out at once (via the useIdle channel).
+ */
+export function leaveApps(ids) {
+  for (const id of ids) {
+    fetch(`/api/${id}/logout`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', credentials: 'same-origin', keepalive: true,
+    }).catch(() => {});
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(`nook-idle-${id}`);
+      ch.postMessage({ type: 'expired', why: 'left' });
+      ch.close();
+    }
+  }
+}
+
+/**
+ * For apps with accounts: when the browser shows this page from its back/forward cache (e.g. Forward after
+ * going back to the Nook), the screen still looks logged in. Re-check with the server and call onGone if not.
+ */
+export function useStillHere(check, onGone) {
+  const cb = useRef({ check, onGone });
+  cb.current = { check, onGone };
+  useEffect(() => {
+    const shown = async (e) => {
+      if (!e.persisted) return;
+      if (!(await cb.current.check().catch(() => false))) cb.current.onGone();
+    };
+    addEventListener('pageshow', shown);
+    return () => removeEventListener('pageshow', shown);
+  }, []);
 }

@@ -22,7 +22,8 @@ For anything visual also load the **nook-design** skill.
    Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (Ollama, loopback only; always keep a
    no-AI fallback and show which one answered).
    Accounts with private data → `Accounts(db, id, idle_minutes=15)` + `useIdle`/`IdleBadge`/`IdleWarning`
-   (inactivity logout, enforced on the server too).
+   (inactivity logout, enforced on the server too) + `"lock_on_leave": true` in the manifest and
+   `useStillHere` (going back to the Nook home logs the app out).
    Front end: kit components, `api('/api/<id>')`, `usePoll`, `useFlash`, `useToast`, `useConfirm`,
    `useContextMenu` (right-click menus; the same actions must also be reachable from a visible "More" button),
    `usePageMenu` (the screen's items for the page-wide right-click menu; give each area of a screen its own

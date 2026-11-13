@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 (2026-11-13)
+
+- Lock on leave. Apps whose manifest has `"lock_on_leave": true` are logged out whenever the Nook home is
+  shown (its button, the Back button, the menu, a typed address): `leaveApps(ids)` ends the session on the
+  server and tells open tabs of the app (`useIdle`'s `onExpire` gets `'left'`). `useStillHere(check, onGone)`
+  re-checks a page the browser restores from its back/forward cache.
+
 ## 1.3.0 (2026-11-13)
 
 - The whole page has a Nook menu: a right click anywhere no `menu.bind` claims shows the page menu (the app's
