@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0 (2026-11-13)
+
+- `nookkit.warden`: with LM Studio, a model is loaded only when an app asks a question, fully on the graphics
+  card (`--gpu max`, one request at a time), and unloaded 20 s after the last answer (plus an LM Studio TTL as
+  a safety net). It loads only when the card has room (measured size, or LM Studio's estimate +25%, plus 1 GiB)
+  and the PC keeps 2 GiB of RAM; real usage is measured after each load and remembered
+  (`~/.config/nook/llm-memory.json`). Never two models: a model already loaded in LM Studio is used if it is
+  fully on the card, and left loaded; otherwise nothing is loaded and the app uses its fallback.
+- `llm.status()` adds `on_demand`, `loaded`, `keep_seconds`, `warden`, and per model `size_gb` / `need_gb`.
+
 ## 1.5.1 (2026-11-13)
 
 - `llm.status()` also reports `vram_gb` (AMD via sysfs, NVIDIA via nvidia-smi), so apps don't call a model

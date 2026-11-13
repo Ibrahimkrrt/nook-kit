@@ -62,7 +62,8 @@ in the manifest, coming back to the Nook home ends the session too: `useIdle`'s 
 
 **Local AI (optional):** `nookkit.llm` uses the models already on this computer, through LM Studio (:1234),
 llama.cpp's server (:8080) or Ollama (:11434), whichever is running; loopback URLs only. It picks the smallest
-proper chat model unless the person chose one. `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`.
+proper chat model unless the person chose one. With LM Studio, `nookkit.warden` loads it only for the
+question, on the graphics card only, never next to another model, and unloads it 20 s later. `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`.
 Don't tell people to download a model: offer the ones `status()["models"]` lists (`llm.save(model=…)`), and
 an API-token field when `needs_token` (PC only, `not req.remote`). Settings: `~/.config/nook/config.json →
 "llm": {"url", "model", "timeout"}`, plus `~/.config/nook/llm.json` written by `save()`. An app must work

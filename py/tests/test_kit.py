@@ -401,6 +401,67 @@ class LMStudioTest(unittest.TestCase):
         self.assertIsNone(llm._params("mistral"))
 
 
+class WardenTest(unittest.TestCase):
+    """The memory rules for loading a model (no LM Studio needed)."""
+
+    def test_fits_needs_gpu_room_and_spare_ram(self):
+        from nookkit import warden
+        self.assertTrue(warden.fits(5.7, 0.6, gpu=(24, 1), ram=8)[0])
+        self.assertFalse(warden.fits(16.7, 2.1, gpu=(24, 8), ram=8)[0])        # card busy (a game…)
+        self.assertFalse(warden.fits(5.7, 0.6, gpu=(24, 1), ram=2.3)[0])       # RAM would drop under the reserve
+        ok, why = warden.fits(5.7, 0.6, gpu=None, ram=8)                       # can't see the card: never load
+        self.assertFalse(ok)
+        self.assertIn("graphics card", why)
+
+    def test_need_prefers_measurements_then_padded_estimates(self):
+        import os
+        from unittest import mock
+        from nookkit import warden
+        with tempfile.TemporaryDirectory() as d:
+            book = Path(d) / "llm-memory.json"
+            with mock.patch.object(warden, "_book_path", return_value=book):
+                with mock.patch.object(warden, "_estimate", return_value=(4.78, 4.78)):
+                    vram, ram = warden.need("qwen3-8b", 5.1, "lms")
+                    self.assertAlmostEqual(vram, 4.78 * warden.ESTIMATE_PAD)
+                with mock.patch.object(warden, "_estimate", return_value=(10.0, 16.0)):  # would spill into RAM
+                    with self.assertRaises(warden.WardenError):
+                        warden.need("big", 16, "lms")
+                warden._remember("qwen3-8b", 5.7, 0.53)
+                self.assertEqual(warden.need("qwen3-8b", 5.1, "lms"), (5.7, 0.53))
+
+    def test_someone_elses_model_is_used_only_when_fully_on_the_gpu(self):
+        from unittest import mock
+        from nookkit import warden
+        loaded = [{"key": "qwen3-8b", "type": "llm", "size_bytes": 5 * 2**30, "loaded_instances": [{"id": "manual"}]}]
+        with mock.patch.object(warden, "_models", return_value=loaded), \
+             mock.patch.object(warden, "lms_cli", return_value="lms"), \
+             mock.patch.object(warden, "_run") as run, \
+             mock.patch.object(warden, "ram_available", return_value=8):
+            with mock.patch.object(warden, "gpu_memory", return_value=(24, 6.7)):
+                with warden.use({}, [{"id": "qwen3-8b", "size": 5}]) as model:
+                    self.assertEqual(model, "manual")
+            with mock.patch.object(warden, "gpu_memory", return_value=(24, 3.8)):   # half of it is in RAM
+                with self.assertRaises(warden.WardenError):
+                    with warden.use({}, [{"id": "qwen3-8b", "size": 5}]):
+                        pass
+            run.assert_not_called()                                              # never loads a second one
+
+    def test_nothing_fits_means_no_load(self):
+        from unittest import mock
+        from nookkit import warden
+        with mock.patch.object(warden, "_models", return_value=[]), \
+             mock.patch.object(warden, "lms_cli", return_value="lms"), \
+             mock.patch.object(warden, "need", return_value=(16.7, 2.1)), \
+             mock.patch.object(warden, "gpu_memory", return_value=(24, 10)), \
+             mock.patch.object(warden, "ram_available", return_value=8), \
+             mock.patch.object(warden, "_run") as run:
+            with self.assertRaises(warden.WardenError) as e:
+                with warden.use({}, [{"id": "qwen/qwen3.6-27b", "size": 16}]):
+                    pass
+            self.assertIn("No model fits", str(e.exception))
+            run.assert_not_called()
+
+
 class ExtractTextTest(unittest.TestCase):
     def test_unknown_types_give_empty_text(self):
         with tempfile.TemporaryDirectory() as d:

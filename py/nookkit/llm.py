@@ -30,6 +30,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from . import warden
 from .paths import CONFIG_ROOT
 
 SERVERS = [  # looked for in this order when no URL is configured
@@ -164,7 +165,18 @@ def _models(url, api, token, timeout=1.5):
             out.append({"id": name, "params": _params(d.get("parameter_size"), name), "chat": not embed})
         return out
     base = url[:-3] if url.endswith("/v1") else url
-    try:  # LM Studio's own listing says which ones are embedding models
+    try:  # LM Studio's newer listing: types, file sizes, what's loaded (the warden needs all three)
+        rows = _call(base, "/api/v1/models", timeout=timeout, token=token).get("models", [])
+        for m in rows:
+            out.append({"id": m["key"], "params": _params(m.get("params_string"), m["key"]),
+                        "chat": m.get("type") in ("llm", "vlm"), "size": m.get("size_bytes", 0) / 2**30,
+                        "loaded": bool(m.get("loaded_instances")), "managed": True})
+        return out
+    except _NeedsToken:
+        raise
+    except (LLMError, KeyError, TypeError):
+        out = []
+    try:  # LM Studio's older listing says which ones are embedding models
         rows = _call(base, "/api/v0/models", timeout=timeout, token=token).get("data", [])
         for m in rows:
             out.append({"id": m["id"], "params": _params(m["id"]), "chat": m.get("type") in ("llm", "vlm")})
@@ -220,13 +232,23 @@ def status(max_age=10):
         if api == "ollama":  # "qwen3" means "qwen3:latest"
             ids |= {i.removesuffix(":latest") for i in ids}
         chosen = s["model"] if s["model"] in ids else _auto_model(models)
+        book = warden._book()
+        managed = any(m.get("managed") for m in models)
+        loaded = [m["id"] for m in chat if m.get("loaded")]
         value = {"ready": True, "running": True, "server": name, "model": chosen,
                  "picked": "you" if chosen == s["model"] else "auto",
-                 "models": [{"id": m["id"], "params": m["params"]} for m in chat],
-                 "needs_token": False, "error": None}
+                 "models": [{"id": m["id"], "params": m["params"], "size_gb": round(m.get("size", 0), 1) or None,
+                             "need_gb": (book.get(m["id"]) or {}).get("vram")} for m in chat],
+                 "needs_token": False, "error": None,
+                 # LM Studio: the warden loads a model only when needed, GPU only, one at a time
+                 "on_demand": managed, "loaded": loaded, "keep_seconds": warden.KEEP if managed else None,
+                 "warden": warden.note() if managed else None}
         if s["model"] and s["model"] not in ids:
             value["error"] = f"{s['model']} isn't on {name}; using {chosen}"
-        pick = {"api": api, "url": url, "model": chosen, "token": s["token"], "timeout": s["timeout"], "name": name}
+        order = [m for m in chat if m["id"] == chosen] + sorted(
+            (m for m in chat if m["id"] != chosen), key=lambda m: m.get("size") or (m["params"] or 99))
+        pick = {"api": api, "url": url, "model": chosen, "token": s["token"], "timeout": s["timeout"], "name": name,
+                "managed": managed, "wanted": [{"id": m["id"], "size": m.get("size") or 0} for m in order]}
         break
     value["ram_gb"] = ram  # so apps can say which models fit the graphics card, and which are too big
     value["vram_gb"] = _vram_gb()
@@ -274,11 +296,25 @@ def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096):
     if "qwen3" in model.lower():
         prompt += "\n/no_think"  # Qwen3's switch: answer straight away instead of thinking out loud first
     messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
+    if p.get("managed"):  # LM Studio: load on demand onto the graphics card, one model at a time
+        try:
+            with _lock, warden.use(p, p["wanted"]) as instance:
+                out = _call(p["url"], "/chat/completions", {
+                    "model": instance, "messages": messages, "stream": False, "temperature": temperature,
+                    "max_tokens": 1024,
+                    "response_format": {"type": "json_schema", "json_schema": {"name": "answer", "strict": True, "schema": schema}},
+                }, timeout=p["timeout"], token=p["token"])
+        except warden.WardenError as e:
+            raise LLMError(str(e)) from None
+        finally:
+            _status_cache["at"] = 0.0  # what's loaded changed
+        content = ((out.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+        return _parse(content)
     with _lock:
         if p["api"] == "ollama":
             out = _call(p["url"], "/api/chat", {
                 "model": model, "messages": messages, "stream": False, "format": schema, "think": False,
-                "keep_alive": "15m", "options": {"temperature": temperature, "num_ctx": num_ctx},
+                "keep_alive": f"{warden.KEEP}s", "options": {"temperature": temperature, "num_ctx": num_ctx},
             }, timeout=p["timeout"])
             content = (out.get("message") or {}).get("content", "")
         else:
@@ -288,6 +324,10 @@ def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096):
                 "response_format": {"type": "json_schema", "json_schema": {"name": "answer", "strict": True, "schema": schema}},
             }, timeout=p["timeout"], token=p["token"])
             content = ((out.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    return _parse(content)
+
+
+def _parse(content):
     try:
         answer = json.loads(_strip_think(content))
     except ValueError:
