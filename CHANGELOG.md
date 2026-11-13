@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 (2026-11-13)
+
+- The whole page has a Nook menu: a right click anywhere no `menu.bind` claims shows the page menu (the app's
+  own items from the new `usePageMenu(() => items)`, then Back / Reload / Copy page link / Back to the Nook),
+  and an unbound link shows Open / Open in a new tab / Copy link. The browser's own menu stays for text
+  fields, selected text, and Shift+Alt+right click.
+- Menu items can be `{ note }` (small footer text, hidden on touch screens).
+
 ## 1.2.0 (2026-11-10)
 
 - Inactivity logout. Server: `Accounts(..., idle_minutes=15)` deletes sessions unused for that long (plus a

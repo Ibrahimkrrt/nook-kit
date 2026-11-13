@@ -243,6 +243,8 @@
 .nk-menu-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nk-menu-hint { font-family: var(--font-mono); font-size: var(--t-2xs); color: var(--text-3); background: none; border: 0; padding: 0; }
 .nk-menu-sep { height: 1px; margin: 5px 6px; background: var(--line); }
+.nk-menu-note { padding: 6px 10px 4px; margin-top: 4px; border-top: 1px solid var(--line); font-size: var(--t-2xs); color: var(--text-3); white-space: nowrap; }
+@media (pointer: coarse) { .nk-menu-note { display: none; } }
 .nk-menu-head { padding: 8px 10px 4px; font-size: var(--t-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 @media (pointer: coarse) { .nk-menu-item { min-height: 44px; font-size: var(--t-md); } }
 

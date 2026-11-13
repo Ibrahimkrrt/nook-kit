@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
+import { ArrowLeft, ExternalLink, House, Link2, RotateCw, SquareArrowOutUpRight } from 'lucide-react';
 import { spring } from '../motion.js';
+import { useToast } from './Toast.jsx';
 
 /**
  * Context menus: right click on desktop, long-press on touch, Shift+F10 / Menu key on the keyboard.
@@ -17,6 +19,11 @@ import { spring } from '../motion.js';
  *
  * Items are computed when the menu opens (pass a function), so they always see fresh state.
  * Always offer the same actions somewhere visible too (a "More" button): a menu is a shortcut.
+ *
+ * The whole page has a menu too, so the browser's grey one never shows up next to ours: a right click
+ * anywhere nothing more specific is bound gets the page menu (the app's items from usePageMenu, then
+ * Back / Reload / Copy link / the Nook), and an unbound link gets Open / Open in new tab / Copy link.
+ *   usePageMenu(() => [{ label: 'New folder…', icon: FolderPlus, onSelect: … }]);
  */
 const MenuCtx = createContext(null);
 
@@ -26,14 +33,28 @@ function native(e) {
   if (e.shiftKey && e.altKey) return true;
   if (e.target.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return true;
   const sel = window.getSelection?.();
-  return !!(sel && !sel.isCollapsed && e.currentTarget.contains(sel.anchorNode) && e.type === 'contextmenu');
+  return !!(e.type === 'contextmenu' && sel && !sel.isCollapsed && sel.toString().trim() && sel.containsNode(e.target, true));
+}
+const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]';
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* http on the LAN: no clipboard API */ }
+  const t = Object.assign(document.createElement('textarea'), { value: text });
+  t.style.cssText = 'position:fixed;opacity:0';
+  document.body.append(t);
+  t.select();
+  const ok = document.execCommand('copy');
+  t.remove();
+  return ok;
 }
 const LONG_PRESS = 480;
 let swallowUntil = 0; // a long-press opened a menu: swallow the click that follows the finger lifting
 
-export function MenuProvider({ children }) {
+export function MenuProvider({ name, home = '/', children }) {
   const [menu, setMenu] = useState(null); // { x, y, items, from }
   const close = useCallback(() => setMenu(null), []);
+  const toast = useToast();
+  const pages = useRef([]); // usePageMenu registrations, the latest mounted wins
 
   const open = useCallback((x, y, items, from) => {
     const list = (typeof items === 'function' ? items() : items)?.filter(Boolean);
@@ -47,7 +68,7 @@ export function MenuProvider({ children }) {
       open(r.left, r.bottom + 6, items, from);
     };
     // what gets focus back when the menu closes: the focusable thing that was clicked, or the row itself
-    const origin = (e) => e.target.closest?.('button, a[href], input, select, textarea, [tabindex]') || e.currentTarget;
+    const origin = (e) => e.target.closest?.(FOCUSABLE) || e.currentTarget;
     const bind = (items) => {
       let timer = null;
       let start = null;
@@ -99,8 +120,50 @@ export function MenuProvider({ children }) {
         onTouchCancel: cancel,
       };
     };
-    return { open, openAt, bind, close };
+    return { open, openAt, bind, close, pages };
   }, [open, close]);
+
+  // everything nobody else claimed: the page menu, or a link menu
+  useEffect(() => {
+    const copy = async (text, what) => {
+      const ok = await copyText(text);
+      toast(ok ? { tone: 'ok', title: `${what} copied` } : { tone: 'danger', title: 'Couldn’t copy', description: text });
+    };
+    const linkItems = (a) => [
+      { heading: 'Link' },
+      { label: 'Open', icon: ExternalLink, onSelect: () => a.click() },
+      { label: 'Open in a new tab', icon: SquareArrowOutUpRight, onSelect: () => window.open(a.href, '_blank', 'noopener') },
+      { label: 'Copy link', icon: Link2, onSelect: () => copy(a.href, 'Link') },
+    ];
+    const pageItems = () => {
+      const top = pages.current.at(-1)?.current;
+      const own = (typeof top === 'function' ? top() : top)?.filter(Boolean) || [];
+      const atHome = home && new URL(home, location.href).pathname === location.pathname;
+      return [
+        ...(own.length ? own : name ? [{ heading: name }] : []),
+        own.length && '-',
+        { label: 'Back', icon: ArrowLeft, disabled: history.length <= 1, onSelect: () => history.back() },
+        { label: 'Reload', icon: RotateCw, hint: 'F5', onSelect: () => location.reload() },
+        { label: 'Copy page link', icon: Link2, onSelect: () => copy(location.href, 'Page link') },
+        home && !atHome && { label: 'Back to the Nook', icon: House, onSelect: () => location.assign(home) },
+        { note: 'Shift + Alt + right click: browser menu' },
+      ].filter(Boolean);
+    };
+    const onContext = (e) => {
+      if (e.defaultPrevented || e.nkMenu || native(e)) return;
+      e.preventDefault();
+      const link = e.target.closest?.('a[href]');
+      const items = link ? linkItems(link) : pageItems();
+      const from = e.target.closest?.(FOCUSABLE) || document.activeElement;
+      if (e.clientX === 0 && e.clientY === 0) { // keyboard: next to whatever has focus
+        const el = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+        if (el) api.openAt(el, items, from);
+        else open(innerWidth / 2 - 100, innerHeight / 3, items, from);
+      } else open(e.clientX, e.clientY, items, from);
+    };
+    document.addEventListener('contextmenu', onContext);
+    return () => document.removeEventListener('contextmenu', onContext);
+  }, [api, open, toast, name, home]);
 
   return (
     <MenuCtx.Provider value={api}>
@@ -192,6 +255,7 @@ function MenuPanel({ menu, onClose }) {
       {menu.items.map((item, i) => {
         if (item === '-') return <div key={i} className="nk-menu-sep" role="separator" />;
         if (item.heading) return <div key={i} className="nk-menu-head">{item.heading}</div>;
+        if (item.note) return <div key={i} className="nk-menu-note">{item.note}</div>;
         const Icon = item.icon;
         return (
           <div
@@ -216,4 +280,20 @@ export function useContextMenu() {
   const c = useContext(MenuCtx);
   if (!c) throw new Error('useContextMenu needs <NookProvider>');
   return c;
+}
+
+/**
+ * The app's own items for the page-wide menu (shown above Back / Reload / Copy link). Pass a function
+ * so it reads fresh state when the menu opens. The most recently mounted screen's items win.
+ */
+export function usePageMenu(items) {
+  const c = useContext(MenuCtx);
+  const ref = useRef(items);
+  ref.current = items;
+  useEffect(() => {
+    if (!c) return undefined;
+    const list = c.pages.current;
+    list.push(ref);
+    return () => { const i = list.indexOf(ref); if (i >= 0) list.splice(i, 1); };
+  }, [c]);
 }

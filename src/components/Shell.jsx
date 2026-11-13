@@ -16,7 +16,7 @@ export function NookProvider({ persona, children }) {
   return (
     <MotionConfig reducedMotion="user">
       <ToastProvider>
-        <ConfirmProvider><MenuProvider>{children}</MenuProvider></ConfirmProvider>
+        <ConfirmProvider><MenuProvider name={persona?.app}>{children}</MenuProvider></ConfirmProvider>
       </ToastProvider>
     </MotionConfig>
   );

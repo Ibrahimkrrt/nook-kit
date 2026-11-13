@@ -24,7 +24,9 @@ For anything visual also load the **nook-design** skill.
    Accounts with private data → `Accounts(db, id, idle_minutes=15)` + `useIdle`/`IdleBadge`/`IdleWarning`
    (inactivity logout, enforced on the server too).
    Front end: kit components, `api('/api/<id>')`, `usePoll`, `useFlash`, `useToast`, `useConfirm`,
-   `useContextMenu` (right-click menus; the same actions must also be reachable from a visible "More" button).
+   `useContextMenu` (right-click menus; the same actions must also be reachable from a visible "More" button),
+   `usePageMenu` (the screen's items for the page-wide right-click menu; give each area of a screen its own
+   `bind` menu where there's something specific to do there).
 3. **Something reusable belongs in the kit**, not copy-pasted into two apps. Add it to the kit, test it,
    release a minor version (see below), then update the apps.
 4. **App code never imports another app.** Apps talk to the Nook only through the manifest, `persona.json`
