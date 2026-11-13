@@ -288,6 +288,119 @@ class LLMTest(unittest.TestCase):
             os.environ["NOOK_LLM_URL"] = f"http://127.0.0.1:{self.server.server_port}"
 
 
+class LMStudioTest(unittest.TestCase):
+    """nookkit.llm against a fake LM Studio (OpenAI-style, API token, embedding model in the list)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import os
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from nookkit import llm
+
+        seen = cls.seen = []
+
+        class Fake(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def reply(self, obj, code=200):
+                body = json.dumps(obj).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def authed(self):
+                if self.headers.get("Authorization") == "Bearer s3cret":
+                    return True
+                self.reply({"error": {"message": "An LM Studio API token is required"}}, 401)
+                return False
+
+            def do_GET(self):
+                if not self.authed():
+                    return
+                if self.path == "/api/v0/models":
+                    self.reply({"data": [
+                        {"id": "qwen/qwen3.6-27b", "type": "vlm"}, {"id": "ggml-org-gpt-oss-20b-split", "type": "llm"},
+                        {"id": "qwen3-8b", "type": "llm"}, {"id": "text-embedding-nomic-embed-text-v1.5", "type": "embeddings"}]})
+                else:
+                    self.reply({"error": "nope"}, 404)
+
+            def do_POST(self):
+                if not self.authed():
+                    return
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                seen.append(body)
+                content = "<think>\n</think>\n" + json.dumps({"folder": "Impôts/2025"})
+                self.reply({"choices": [{"message": {"role": "assistant", "content": content}}]})
+
+        cls.server = HTTPServer(("127.0.0.1", 0), Fake)
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.old = {k: os.environ.get(k) for k in ("NOOK_LLM_URL", "NOOK_LLM_MODEL")}
+        cls.old_paths = (llm.CONFIG_ROOT, llm.SAVED)
+        llm.CONFIG_ROOT = Path(cls.tmp.name)          # never touch the real config
+        llm.SAVED = llm.CONFIG_ROOT / "llm.json"
+        os.environ["NOOK_LLM_URL"] = f"http://127.0.0.1:{cls.server.server_port}/v1"
+        os.environ.pop("NOOK_LLM_MODEL", None)
+
+    @classmethod
+    def tearDownClass(cls):
+        import os
+        from nookkit import llm
+        cls.server.shutdown()
+        llm.CONFIG_ROOT, llm.SAVED = cls.old_paths
+        cls.tmp.cleanup()
+        for k, v in cls.old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_token_then_auto_model_then_choice(self):
+        import os
+        import stat
+        from nookkit import llm
+        llm.save(token="")
+        st = llm.status(max_age=0)
+        self.assertTrue(st["running"] and st["needs_token"] and not st["ready"], st)
+
+        llm.save(token="s3cret")
+        self.assertEqual(stat.S_IMODE(os.stat(llm.SAVED).st_mode), 0o600)
+        st = llm.status(max_age=0)
+        self.assertTrue(st["ready"], st)
+        self.assertEqual(st["server"], "Local server")
+        self.assertEqual(st["model"], "qwen3-8b")             # smallest chat model, not the embedder
+        self.assertEqual(st["picked"], "auto")
+        self.assertNotIn("text-embedding-nomic-embed-text-v1.5", [m["id"] for m in st["models"]])
+        self.assertNotIn("s3cret", json.dumps(st))             # the token never leaves the server
+
+        out = llm.ask_json("where?", {"type": "object"}, system="be brief")
+        self.assertEqual(out, {"folder": "Impôts/2025"})       # <think> block stripped
+        sent = self.seen[-1]
+        self.assertEqual(sent["model"], "qwen3-8b")
+        self.assertEqual(sent["response_format"]["json_schema"]["schema"], {"type": "object"})
+        self.assertTrue(sent["messages"][-1]["content"].endswith("/no_think"))
+
+        llm.save(model="ggml-org-gpt-oss-20b-split")
+        st = llm.status(max_age=0)
+        self.assertEqual((st["model"], st["picked"]), ("ggml-org-gpt-oss-20b-split", "you"))
+        llm.save(model="gone-model")
+        st = llm.status(max_age=0)
+        self.assertEqual(st["model"], "qwen3-8b")
+        self.assertIn("isn't on", st["error"])
+
+    def test_sizes_from_names(self):
+        from nookkit import llm
+        self.assertEqual(llm._params("qwen/qwen3.6-27b"), 27)
+        self.assertEqual(llm._params("qwen3-8b"), 8)
+        self.assertEqual(llm._params("8.0B"), 8)
+        self.assertEqual(llm._params("qwen2.5:3b"), 3)
+        self.assertIsNone(llm._params("mistral"))
+
+
 class ExtractTextTest(unittest.TestCase):
     def test_unknown_types_give_empty_text(self):
         with tempfile.TemporaryDirectory() as d:

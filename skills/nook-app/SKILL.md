@@ -19,8 +19,9 @@ For anything visual also load the **nook-design** skill.
 2. **Use the bricks, don't re-invent them.** Accounts → `nookkit.auth.Accounts`. SQLite → `nookkit.store.Database`
    (append migrations, never edit old ones). Uploads → `nookkit.files.decode_upload` + `safe_name` + `unique_path` + `inside`.
    Background work with progress → `nookkit.jobs.Job`. Data folders → `nookkit.paths`.
-   Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (Ollama, loopback only; always keep a
-   no-AI fallback and show which one answered).
+   Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (the user's own models via LM Studio,
+   llama.cpp or Ollama, loopback only; never ask them to download one; always keep a no-AI fallback and
+   show which one answered).
    Accounts with private data → `Accounts(db, id, idle_minutes=15)` + `useIdle`/`IdleBadge`/`IdleWarning`
    (inactivity logout, enforced on the server too) + `"lock_on_leave": true` in the manifest and
    `useStillHere` (going back to the Nook home logs the app out).

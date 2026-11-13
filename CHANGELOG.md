@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 (2026-11-13)
+
+- `nookkit.llm` uses the models already on the PC: besides Ollama it speaks to OpenAI-style local servers
+  (LM Studio on :1234, llama.cpp's llama-server on :8080), finds whichever is running, and picks the smallest
+  proper chat model (embedding models skipped) unless one was chosen. API tokens supported.
+- `llm.status()` now also returns `server`, `models`, `picked`, `needs_token`, `ram_gb`; `llm.save(model=…,
+  token=…)` remembers a choice in `~/.config/nook/llm.json` (0600). The token never appears in `status()`.
+- Qwen3 models are asked to skip their thinking step; stray `<think>` blocks are stripped.
+
 ## 1.4.0 (2026-11-13)
 
 - Lock on leave. Apps whose manifest has `"lock_on_leave": true` are logged out whenever the Nook home is

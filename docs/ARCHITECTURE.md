@@ -60,9 +60,12 @@ so the home screen shows every app's real mascot without importing app code.
 in the manifest, coming back to the Nook home ends the session too: `useIdle`'s `onExpire` gets `'left'`, and
 `useStillHere(check, onGone)` catches a logged-in page the browser restores from its back/forward cache.
 
-**Local AI (optional):** `nookkit.llm` talks to Ollama on this computer only (loopback URLs; anything else is
-refused). `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`. Settings in
-`~/.config/nook/config.json → "llm": {"url", "model", "timeout"}` (default `qwen2.5:3b`). An app must work
+**Local AI (optional):** `nookkit.llm` uses the models already on this computer, through LM Studio (:1234),
+llama.cpp's server (:8080) or Ollama (:11434), whichever is running; loopback URLs only. It picks the smallest
+proper chat model unless the person chose one. `llm.status()["ready"]` → `llm.ask_json(prompt, schema, system=…)`.
+Don't tell people to download a model: offer the ones `status()["models"]` lists (`llm.save(model=…)`), and
+an API-token field when `needs_token` (PC only, `not req.remote`). Settings: `~/.config/nook/config.json →
+"llm": {"url", "model", "timeout"}`, plus `~/.config/nook/llm.json` written by `save()`. An app must work
 without it: keep a rule-based fallback and say in the UI which one is answering.
 `nookkit.files.extract_text(path)` gives a document's text (pdftotext; tesseract for images when installed).
 

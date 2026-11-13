@@ -12,6 +12,6 @@ Bricks:
   nookkit.files   safe uploads: base64 decode, size limit, type sniffing, safe names
   nookkit.jobs    one background job with live progress (download, convert, …)
   nookkit.llm     optional local language model (Ollama, loopback only) with JSON answers
-  nookkit.semver  "does kit 1.4.0 satisfy ^1.0.0?"
+  nookkit.semver  "does kit 1.5.0 satisfy ^1.0.0?"
 """
-__version__ = "1.4.0"
+__version__ = "1.5.0"
