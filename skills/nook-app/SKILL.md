@@ -21,7 +21,10 @@ For anything visual also load the **nook-design** skill.
    Background work with progress → `nookkit.jobs.Job`. Data folders → `nookkit.paths`.
    Document text → `nookkit.files.extract_text`. Local AI → `nookkit.llm` (the user's own models via LM Studio,
    llama.cpp or Ollama, loopback only; never ask them to download one; always keep a no-AI fallback and
-   show which one answered).
+   show which one answered). Always go through `llm.ask_json`: with LM Studio it runs `nookkit.warden`
+   (load on demand, GPU only, measured memory checks, one model at a time, unload after). Never send a
+   model *name* to LM Studio's chat API yourself: its just-in-time loading would load it with huge defaults
+   (40k context, 4 parallel) and eat the PC's RAM; that happened once.
    Accounts with private data → `Accounts(db, id, idle_minutes=15)` + `useIdle`/`IdleBadge`/`IdleWarning`
    (inactivity logout, enforced on the server too) + `"lock_on_leave": true` in the manifest and
    `useStillHere` (going back to the Nook home logs the app out).
