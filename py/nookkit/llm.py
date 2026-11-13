@@ -286,14 +286,16 @@ def _strip_think(text):
     return re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
 
 
-def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096):
-    """Ask for an answer shaped like `schema` (JSON Schema). Returns the parsed dict or raises LLMError."""
+def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096, think=False):
+    """Ask for an answer shaped like `schema` (JSON Schema). Returns the parsed dict or raises LLMError.
+    think=True lets reasoning models think before answering: slower (tens of seconds), but much better at
+    judgement calls ("what is this paper, really?")."""
     status(max_age=30)
     p = _status_cache["pick"]
     if not p:
         raise LLMError(_status_cache["value"]["error"] or "No local language model is available")
     model = p["model"]
-    if "qwen3" in model.lower():
+    if "qwen3" in model.lower() and not think:
         prompt += "\n/no_think"  # Qwen3's switch: answer straight away instead of thinking out loud first
     messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     if p.get("managed"):  # LM Studio: load on demand onto the graphics card, one model at a time
@@ -301,9 +303,9 @@ def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096):
             with _lock, warden.use(p, p["wanted"]) as instance:
                 out = _call(p["url"], "/chat/completions", {
                     "model": instance, "messages": messages, "stream": False, "temperature": temperature,
-                    "max_tokens": 1024,
+                    "max_tokens": 4500 if think else 1024, **({} if think else {"reasoning_effort": "none"}),
                     "response_format": {"type": "json_schema", "json_schema": {"name": "answer", "strict": True, "schema": schema}},
-                }, timeout=p["timeout"], token=p["token"])
+                }, timeout=p["timeout"] * (3 if think else 1), token=p["token"])
         except warden.WardenError as e:
             raise LLMError(str(e)) from None
         finally:
@@ -313,7 +315,7 @@ def ask_json(prompt, schema, system="", temperature=0.1, num_ctx=4096):
     with _lock:
         if p["api"] == "ollama":
             out = _call(p["url"], "/api/chat", {
-                "model": model, "messages": messages, "stream": False, "format": schema, "think": False,
+                "model": model, "messages": messages, "stream": False, "format": schema, "think": think,
                 "keep_alive": f"{warden.KEEP}s", "options": {"temperature": temperature, "num_ctx": num_ctx},
             }, timeout=p["timeout"])
             content = (out.get("message") or {}).get("content", "")

@@ -107,7 +107,8 @@ def _estimate(cli, key):
     """LM Studio's own estimate (GiB on the GPU, GiB in total), or None."""
     try:
         out = subprocess.run([cli, "load", key, "--estimate-only", "--gpu", "max", "-c", str(CONTEXT),
-                              "--parallel", "1", "-y"], capture_output=True, text=True, timeout=60).stdout
+                              "--parallel", "1", "-y"], capture_output=True, text=True, timeout=60)
+        out = out.stdout + out.stderr  # lms prints the estimate on stderr
     except (OSError, subprocess.SubprocessError):
         return None
     gpu = re.search(r"Estimated GPU Memory:\s*([\d.]+)\s*GiB", out)

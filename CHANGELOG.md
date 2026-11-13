@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 (2026-11-13)
+
+- `llm.ask_json(..., think=True)` lets reasoning models think before answering (slower, much better judgement).
+  Without it, thinking is switched off explicitly (`reasoning_effort: none`, Qwen3's `/no_think`).
+- Warden fix: LM Studio prints its memory estimate on stderr; it was being ignored, so big models were judged
+  on a rough file-size guess and wrongly refused.
+
 ## 1.6.0 (2026-11-13)
 
 - `nookkit.warden`: with LM Studio, a model is loaded only when an app asks a question, fully on the graphics
