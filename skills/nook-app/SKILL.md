@@ -16,6 +16,9 @@ For anything visual also load the **nook-design** skill.
 1. **New app = new repo**, made with the scaffolder, never by copying another app:
    `~/dev/pixel/kit/bin/nook-new-app <id> "<Name>" "<tagline>" "<Mascot name>"`.
    Then design its persona (mascot + voice + colours) *before* building features.
+   Then give it a **private** GitHub repo: `gh repo create Ibrahimkrrt/nook-<id> --private --source . --remote origin --push`.
+   GitHub: `nook-kit` and `nook-chomp` are public, everything else private. Commits use the noreply email
+   (set per repo); never make a repo public without checking its history for personal data first.
 2. **Use the bricks, don't re-invent them.** Accounts → `nookkit.auth.Accounts`. SQLite → `nookkit.store.Database`
    (append migrations, never edit old ones). Uploads → `nookkit.files.decode_upload` + `safe_name` + `unique_path` + `inside`.
    Background work with progress → `nookkit.jobs.Job`. Data folders → `nookkit.paths`.

@@ -9,7 +9,7 @@
     "check": "nook-persona check src/persona.json"
   },
   "dependencies": {
-    "@nook/kit": "git+file://__KIT__#semver:^__KIT_VERSION__",
+    "@nook/kit": "github:Ibrahimkrrt/nook-kit#semver:^__KIT_VERSION__",
     "motion": "^14.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
