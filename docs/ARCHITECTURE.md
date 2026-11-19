@@ -22,7 +22,7 @@
 
 | Shared thing | Where | How apps get it |
 |---|---|---|
-| Design tokens, components, motion, mascot engine | `kit/src` | npm dependency, pinned by git tag: `"@nook/kit": "git+file://…/kit#semver:^1.0.0"` |
+| Design tokens, components, motion, mascot engine | `kit/src` | npm dependency, pinned by git tag: `"@nook/kit": "github:Ibrahimkrrt/nook-kit#semver:^1.0.0"` (offline: `NOOK_KIT_DEV=1` uses the local checkout) |
 | Build setup (base path, dev proxy, dedupe) | `kit/vite/preset.js` | `nookVite({ id })` |
 | Back-end bricks (`nookkit`) | `kit/py/nookkit` | provided by the Nook at runtime; the manifest's `engine` range is checked |
 | House rules for humans and Claude | `kit/docs`, `kit/skills` | skills are linked into `~/.claude/skills` (`kit/bin/nook-install-skills`) |
